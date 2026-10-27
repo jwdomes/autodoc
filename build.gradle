@@ -1,0 +1,65 @@
+plugins {
+    id 'java-library'
+    // src/testFixtures becomes a second published jar that apps add with testFixtures(...)
+    id 'java-test-fixtures'
+    id 'maven-publish'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()     // lets IDEs show the library's source
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Test fixtures name SpEL variables after parameters, as apps built with the Boot plugin do.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add('-parameters')
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+// The oldest Spring Boot version the library supports. Apps on a newer Boot keep their own versions,
+// because Gradle picks the higher version when two BOMs (managed version lists) disagree.
+def bootBom = dependencies.platform('org.springframework.boot:spring-boot-dependencies:4.0.8')
+
+dependencies {
+    implementation bootBom
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'org.springframework:spring-aop'
+    implementation 'org.springframework:spring-expression'
+    implementation 'io.micrometer:micrometer-observation'
+    implementation 'org.slf4j:slf4j-api'
+
+    testFixturesApi bootBom
+    testFixturesApi 'com.tngtech.archunit:archunit-junit5:1.5.1'
+    testFixturesApi 'org.wiremock:wiremock-standalone:3.13.2'
+    testFixturesApi 'org.springframework.boot:spring-boot-test'
+    testFixturesApi 'org.springframework:spring-test'
+    testFixturesApi 'org.springframework:spring-web'
+    testFixturesApi 'org.springframework:spring-webmvc'
+    testFixturesApi 'org.junit.jupiter:junit-jupiter-api'
+    testFixturesImplementation 'io.micrometer:micrometer-observation'
+    testFixturesImplementation 'tools.jackson.core:jackson-databind'
+    testFixturesCompileOnly 'jakarta.servlet:jakarta.servlet-api'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'tools.jackson.core:jackson-databind'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+publishing {
+    publications {
+        flowcap(MavenPublication) {
+            from components.java     // main jar, test-fixtures jar, sources, POM and Gradle metadata
+        }
+    }
+    // Published with publishToMavenLocal for now. For a shared Maven repository, add it here:
+    // repositories { maven { name = 'acme'; url = '...'; credentials(PasswordCredentials) } }
+}
