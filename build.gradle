@@ -60,6 +60,4 @@ publishing {
             from components.java     // main jar, test-fixtures jar, sources, POM and Gradle metadata
         }
     }
-    // Published with publishToMavenLocal for now. For a shared Maven repository, add it here:
-    // repositories { maven { name = 'acme'; url = '...'; credentials(PasswordCredentials) } }
 }

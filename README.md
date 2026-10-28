@@ -53,28 +53,9 @@ Publishing writes five files: the main jar, the test-fixtures jar, the sources j
 the `.module` Gradle metadata. The `.module` file is what lets apps write
 `testFixtures('com.example:autodoc:0.1.0')`. Only Gradle reads it.
 
-**To publish to a shared Maven repository** such as Artifactory or Nexus:
-
-1. Add the repository to the `publishing` block in `build.gradle`:
-
-   ```groovy
-   repositories {
-       maven {
-           name = 'acme'
-           url = version.endsWith('SNAPSHOT') ? 'https://repo.acme.com/maven-snapshots'
-                                              : 'https://repo.acme.com/maven-releases'
-           credentials(PasswordCredentials)     // acmeUsername / acmePassword
-       }
-   }
-   ```
-
-2. Put `acmeUsername` and `acmePassword` in `~/.gradle/gradle.properties`, or set them as
-   `ORG_GRADLE_PROJECT_acmeUsername` / `ORG_GRADLE_PROJECT_acmePassword` in CI. Never commit
-   credentials.
-3. Run `./gradlew publish`.
-4. Change `group` in `gradle.properties` to your organization's group, and rename the
-   `com.example.autodoc` package to match. The rename includes the one line in
-   `AutoConfiguration.imports`.
+`publishToMavenLocal` only reaches builds on the same machine. To share autodoc with a team,
+publish it to your organization's Maven repository the way you publish your other internal
+libraries, usually from CI. All five files must be published, including the `.module` file.
 
 **Versioning.** autodoc uses semantic versioning. Count any of these as a major change:
 
@@ -84,6 +65,34 @@ the `.module` Gradle metadata. The `.module` file is what lets apps write
 
 **The Boot BOM** in `build.gradle` names the oldest Spring Boot version autodoc supports. Apps on a
 newer Boot keep their own versions.
+
+## Changing the group and package
+
+The default group and package root is `com.example`. To use your own, for example `org.myco`, run
+this from the repo root (GNU sed):
+
+```bash
+NEW=org.myco
+NEW_DIR=${NEW//.//}
+sed -i "s/^group=.*/group=$NEW/" gradle.properties
+for s in main testFixtures test; do
+  mkdir -p src/$s/java/$NEW_DIR
+  git mv src/$s/java/com/example/autodoc src/$s/java/$NEW_DIR/autodoc
+done
+grep -rl 'com\.example\.autodoc' src | xargs sed -i "s/com\.example\.autodoc/$NEW.autodoc/g"
+./gradlew clean build publishToMavenLocal
+```
+
+This does three things:
+
+- It changes `group` in `gradle.properties`.
+- It moves the source folders.
+- It rewrites every `package` and `import` line, including the one line in
+  `src/main/resources/META-INF/spring/...AutoConfiguration.imports`. If that line is missed,
+  autodoc silently never switches on.
+
+Apps then depend on `org.myco:autodoc:<version>` and import `org.myco.autodoc...` in place of
+`com.example...`.
 
 ## Working on autodoc against a real app
 
