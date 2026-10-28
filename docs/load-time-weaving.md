@@ -4,7 +4,7 @@ Oct 27, 2026 · Plan gist only, nothing built yet
 
 ## Problem
 
-flowcap intercepts annotated methods through Spring AOP proxies. A proxy only sees calls that come
+autodoc intercepts annotated methods through Spring AOP proxies. A proxy only sees calls that come
 in through it, so these are never recorded:
 
 - a call from one method to another in the same class (it goes through `this`)
@@ -27,19 +27,19 @@ Add AspectJ load-time weaving as a second interception mode, alongside the proxi
 
 1. **Aspect.** A `FlowStepAspect` around `@FlowStep` executions that delegates to
    the existing `FlowStepInterceptor` logic.
-2. **Library `META-INF/aop.xml`.** Declares the aspect and includes `com.example.flowcap..*`. It's
+2. **Library `META-INF/aop.xml`.** Declares the aspect and includes `com.example.autodoc..*`. It's
    fixed and the same for every app. AspectJ merges every `aop.xml` on the classpath, so apps add only
    their own package.
 3. **Auto-configuration picks one mode.**
    - If the agent is present: wire the aspect and register no proxy advisor. Both modes at once
      would record every step twice.
    - If the agent is absent: use proxies as today.
-   - Either way, nothing happens unless `flowcap.observations.enabled=true`.
+   - Either way, nothing happens unless `autodoc.observations.enabled=true`.
 4. **Fail loudly on a silent gap.** If observations are on, the agent is absent, and an annotated
    method can't be proxied (private, final, static), fail at startup. Otherwise those steps would
    quietly vanish from the docs.
 5. **Rules.** `noSelfInvocation` and `flowMethodsAreProxyable` stay available but become optional.
-   A weaving-mode app drops them from its `FlowcapRulesTest`.
+   A weaving-mode app drops them from its `AutodocRulesTest`.
 6. **Tests.**
    - a self-call fixture and a private-method fixture, run with the agent
    - the startup failure without it
@@ -52,7 +52,7 @@ Add AspectJ load-time weaving as a second interception mode, alongside the proxi
 | Annotations and functional code | None |
 | `src/test/resources/META-INF/aop.xml` | New: one `include` line for the app's package |
 | App `build.gradle` | Agent wiring on the test task (below) |
-| `FlowcapRulesTest` | Drop `noSelfInvocation` and `flowMethodsAreProxyable` |
+| `AutodocRulesTest` | Drop `noSelfInvocation` and `flowMethodsAreProxyable` |
 | Generated docs | Self-calls now appear; regenerate once with `a test run` |
 | Gatling app run | Add `-javaagent:...aspectjweaver.jar` to `java -jar` |
 | Production | Nothing |
@@ -67,7 +67,7 @@ App `aop.xml`:
 </aspectj>
 ```
 
-The package is the same one passed to `FlowcapSettings.of(basePackage, ...)`. It changes only on a
+The package is the same one passed to `AutodocSettings.of(basePackage, ...)`. It changes only on a
 top-level package rename.
 
 App `build.gradle`:
@@ -129,4 +129,4 @@ already handles them, because ArchUnit sees private calls.
 - A new scenario with a same-class call and a private step shows both in its diagram.
 - Without the agent, a private step fails startup with a clear message.
 - The prod-neutral checks still pass: no beans, proxies or weaving when off.
-- Gatling, with the agent, reports `flowcap.step` metrics for the self-called step.
+- Gatling, with the agent, reports `autodoc.step` metrics for the self-called step.

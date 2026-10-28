@@ -1,6 +1,6 @@
-# flowcap
+# autodoc
 
-flowcap generates flow documentation for a Spring Boot app from its tests. You annotate the
+autodoc generates flow documentation for a Spring Boot app from its tests. You annotate the
 methods that matter with `@FlowStep` and describe scenarios as JSON files. Each scenario's stubs
 stand in for downstream systems in WireMock, and its expectations are written in WireMock's own
 matching syntax.
@@ -13,7 +13,7 @@ these docs:
   request, the diagram, every downstream call and the response.
 - **A static graph and index** of every step.
 
-The app's functional code doesn't change: it only gains annotations. Unless switched on, flowcap
+The app's functional code doesn't change: it only gains annotations. Unless switched on, autodoc
 registers nothing at runtime.
 
 **Requirements:** Spring Boot 4.x with Spring MVC, Java 21+, and Gradle (Groovy DSL).
@@ -25,12 +25,12 @@ registers nothing at runtime.
 ## Layout
 
 ```
-settings.gradle, build.gradle, gradle.properties     coordinates: com.example:flowcap:0.1.0
-src/main/java/com/example/flowcap/                   annotations: @FlowStep, @FlowParticipant
-src/main/java/com/example/flowcap/boot/              runtime: auto-configuration, interceptor
+settings.gradle, build.gradle, gradle.properties     coordinates: com.example:autodoc:0.1.0
+src/main/java/com/example/autodoc/                   annotations: @FlowStep, @FlowParticipant
+src/main/java/com/example/autodoc/boot/              runtime: auto-configuration, interceptor
 src/main/resources/META-INF/spring/...AutoConfiguration.imports
-src/testFixtures/java/com/example/flowcap/test/      test support: runner, renderers, rules
-src/test/java/com/example/flowcap/                   the library's own tests
+src/testFixtures/java/com/example/autodoc/test/      test support: runner, renderers, rules
+src/test/java/com/example/autodoc/                   the library's own tests
 templates/gatling/                                   load-test files apps copy (section 2.10)
 docs/                                                design notes
 ```
@@ -39,19 +39,19 @@ Apps get two jars:
 
 | Jar | Source | Lands on the app's |
 | --- | --- | --- |
-| `flowcap-0.1.0.jar` | `src/main` | main classpath. It does nothing unless enabled. |
-| `flowcap-0.1.0-test-fixtures.jar` | `src/testFixtures` | test classpath only, so ArchUnit, WireMock and JUnit never reach production |
+| `autodoc-0.1.0.jar` | `src/main` | main classpath. It does nothing unless enabled. |
+| `autodoc-0.1.0-test-fixtures.jar` | `src/testFixtures` | test classpath only, so ArchUnit, WireMock and JUnit never reach production |
 
 ## Build, test and publish
 
 ```bash
 ./gradlew build                  # compiles and runs the library's tests
-./gradlew publishToMavenLocal    # writes com/example/flowcap/0.1.0/ to ~/.m2/repository
+./gradlew publishToMavenLocal    # writes com/example/autodoc/0.1.0/ to ~/.m2/repository
 ```
 
 Publishing writes five files: the main jar, the test-fixtures jar, the sources jar, the `.pom`, and
 the `.module` Gradle metadata. The `.module` file is what lets apps write
-`testFixtures('com.example:flowcap:0.1.0')`. Only Gradle reads it.
+`testFixtures('com.example:autodoc:0.1.0')`. Only Gradle reads it.
 
 **To publish to a shared Maven repository** such as Artifactory or Nexus:
 
@@ -73,34 +73,34 @@ the `.module` Gradle metadata. The `.module` file is what lets apps write
    credentials.
 3. Run `./gradlew publish`.
 4. Change `group` in `gradle.properties` to your organization's group, and rename the
-   `com.example.flowcap` package to match. The rename includes the one line in
+   `com.example.autodoc` package to match. The rename includes the one line in
    `AutoConfiguration.imports`.
 
-**Versioning.** flowcap uses semantic versioning. Count any of these as a major change:
+**Versioning.** autodoc uses semantic versioning. Count any of these as a major change:
 
 - an annotation change that breaks app code
 - an expectation syntax change
 - a change that makes docs render differently, because apps that verify their docs must regenerate
 
-**The Boot BOM** in `build.gradle` names the oldest Spring Boot version flowcap supports. Apps on a
+**The Boot BOM** in `build.gradle` names the oldest Spring Boot version autodoc supports. Apps on a
 newer Boot keep their own versions.
 
-## Working on flowcap against a real app
+## Working on autodoc against a real app
 
-To try an unreleased change, add `includeBuild '../flowcap'` to the app repo's `settings.gradle`.
-Remove it before committing. Gradle then builds flowcap from source in place of the published jar,
+To try an unreleased change, add `includeBuild '../autodoc'` to the app repo's `settings.gradle`.
+Remove it before committing. Gradle then builds autodoc from source in place of the published jar,
 test fixtures included.
 
 ---
 
-# Part 2: Adding flowcap to an app
+# Part 2: Adding autodoc to an app
 
 Placeholders: `<app>` is the app's Gradle module directory (the repo root for a single-project
 build). `com.acme.app` is the app's base package.
 
 ## 2.1 Repositories
 
-The app's build must be able to read wherever flowcap is published:
+The app's build must be able to read wherever autodoc is published:
 
 - **Locally:** `mavenLocal()`.
 - **Otherwise:** your shared repository.
@@ -115,10 +115,10 @@ Add it where the repo already declares repositories:
 
 ```groovy
 dependencies {
-    implementation 'com.example:flowcap:0.1.0'
+    implementation 'com.example:autodoc:0.1.0'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'     // provides ObservationRegistry
 
-    testImplementation testFixtures('com.example:flowcap:0.1.0')
+    testImplementation testFixtures('com.example:autodoc:0.1.0')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-webmvc-test'     // @AutoConfigureMockMvc
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -126,15 +126,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
-    // -Pflowcap.docs.formats=... and -Pflowcap.docs.verify=true reach flowcap as system properties
-    ['flowcap.docs.formats', 'flowcap.docs.verify'].each { key ->
+    // -Pautodoc.docs.formats=... and -Pautodoc.docs.verify=true reach autodoc as system properties
+    ['autodoc.docs.formats', 'autodoc.docs.verify'].each { key ->
         def value = providers.gradleProperty(key)
         if (value.present) {
             systemProperty key, value.get()
         }
     }
     // The docs are inputs when they're verified, and outputs when the tests write them.
-    if (providers.gradleProperty('flowcap.docs.verify').getOrElse('false') == 'true') {
+    if (providers.gradleProperty('autodoc.docs.verify').getOrElse('false') == 'true') {
         inputs.dir('docs').optional()
     } else {
         outputs.dir('docs')
@@ -144,7 +144,7 @@ tasks.named('test') {
 
 Notes:
 
-- **Actuator.** With flowcap switched on, the app needs an `ObservationRegistry` bean. Actuator
+- **Actuator.** With autodoc switched on, the app needs an `ObservationRegistry` bean. Actuator
   provides one, and so does `spring-boot-micrometer-observation` on its own. Startup fails loudly
   without it.
 - **`-parameters`.** The Spring Boot Gradle plugin compiles with it, so notes can refer to
@@ -163,11 +163,11 @@ Notes:
 
 | Property | Default | Where |
 | --- | --- | --- |
-| `flowcap.observations.enabled` | off | On in the scenario tests' `@SpringBootTest(properties = ...)`, and on the command line for a load test. Never set in production. |
+| `autodoc.observations.enabled` | off | On in the scenario tests' `@SpringBootTest(properties = ...)`, and on the command line for a load test. Never set in production. |
 
-When it's off, flowcap registers nothing: no beans, no proxies, no expression parsing. When it's
-on, every `@FlowStep` call is recorded as a `flowcap.step` observation, tagged with `flowcap.step`
-and `flowcap.participant`.
+When it's off, autodoc registers nothing: no beans, no proxies, no expression parsing. When it's
+on, every `@FlowStep` call is recorded as a `autodoc.step` observation, tagged with `autodoc.step`
+and `autodoc.participant`.
 
 ## 2.4 Participants and step names
 
@@ -235,7 +235,7 @@ public ProblemDetail inventoryFailed(InventoryException e) { ... }
 - **Client libraries you don't own.** Annotate the app method that calls the client, and add the
   `downstreamCallsAreSteps` rule (section 2.7).
 
-**Rules**, enforced by `FlowcapRules`:
+**Rules**, enforced by `AutodocRules`:
 
 - Steps are public or package-private, not `private`, `final` or `static`. They must never be
   called from their own class, because Spring's proxy only sees calls from other beans.
@@ -248,16 +248,16 @@ public ProblemDetail inventoryFailed(InventoryException e) { ... }
 
 Put all the test classes in one package, for example `<app>/src/test/java/com/acme/app/docs/`.
 
-`AppFlowcap.java`:
+`AppAutodoc.java`:
 
 ```java
-final class AppFlowcap {
+final class AppAutodoc {
 
     // Docs go to <app>/docs/; scenarios come from <app>/src/test/resources/flow-scenarios/;
-    // the glossary is <app>/src/test/resources/flowcap-glossary.json
-    static final FlowcapSettings SETTINGS = FlowcapSettings.of("com.acme.app", Participants.ORDERS);
+    // the glossary is <app>/src/test/resources/autodoc-glossary.json
+    static final AutodocSettings SETTINGS = AutodocSettings.of("com.acme.app", Participants.ORDERS);
 
-    private AppFlowcap() {
+    private AppAutodoc() {
     }
 }
 ```
@@ -273,23 +273,23 @@ class FlowDocsTest {
 
     @Test
     void flowDocsAreCurrent() throws Exception {
-        StaticFlowcap.verify(AppFlowcap.SETTINGS);
+        StaticAutodoc.verify(AppAutodoc.SETTINGS);
     }
 }
 ```
 
-**`FlowcapRulesTest.java`**:
+**`AutodocRulesTest.java`**:
 
 ```java
 @AnalyzeClasses(packages = "com.acme.app", importOptions = ImportOption.DoNotIncludeTests.class)
-class FlowcapRulesTest {
+class AutodocRulesTest {
 
     @ArchTest
-    static final ArchTests flowcap = ArchTests.in(FlowcapRules.class);
+    static final ArchTests autodoc = ArchTests.in(AutodocRules.class);
 
     // Only if downstream calls go through client interfaces from another library
     @ArchTest
-    static final ArchRule clientCallsAreSteps = FlowcapRules.downstreamCallsAreSteps("com.acme.clients..");
+    static final ArchRule clientCallsAreSteps = AutodocRules.downstreamCallsAreSteps("com.acme.clients..");
 }
 ```
 
@@ -306,7 +306,7 @@ abstract class ScenarioDocsTestSupport {
             .options(wireMockConfig().dynamicPort().http2PlainDisabled(true))
             .build();
 
-    private static final ScenarioRunner RUNNER = new ScenarioRunner(AppFlowcap.SETTINGS, downstream);
+    private static final ScenarioRunner RUNNER = new ScenarioRunner(AppAutodoc.SETTINGS, downstream);
 
     // Every downstream base URL points at the one WireMock, each under its own path
     @DynamicPropertySource
@@ -329,11 +329,11 @@ abstract class ScenarioDocsTestSupport {
 **`FlowScenarioDocsTest.java`**: the scenarios for the default configuration.
 
 ```java
-@SpringBootTest(properties = "flowcap.observations.enabled=true")
+@SpringBootTest(properties = "autodoc.observations.enabled=true")
 class FlowScenarioDocsTest extends ScenarioDocsTestSupport {
 
     static Stream<String> scenarios() throws IOException {
-        return Scenario.names(AppFlowcap.SETTINGS.scenariosDir(), Map.of());
+        return Scenario.names(AppAutodoc.SETTINGS.scenariosDir(), Map.of());
     }
 
     @ParameterizedTest(name = "{0}")
@@ -349,11 +349,11 @@ So scenarios that need, say, `pricing.use-new=true` declare it in their `propert
 a class with that setting:
 
 ```java
-@SpringBootTest(properties = {"flowcap.observations.enabled=true", "pricing.use-new=true"})
+@SpringBootTest(properties = {"autodoc.observations.enabled=true", "pricing.use-new=true"})
 class NewPricingScenarioDocsTest extends ScenarioDocsTestSupport {
 
     static Stream<String> scenarios() throws IOException {
-        return Scenario.names(AppFlowcap.SETTINGS.scenariosDir(), Map.of("pricing.use-new", "true"));
+        return Scenario.names(AppAutodoc.SETTINGS.scenariosDir(), Map.of("pricing.use-new", "true"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -364,7 +364,7 @@ class NewPricingScenarioDocsTest extends ScenarioDocsTestSupport {
 }
 ```
 
-**`FlowObservationsOffTest.java`** (optional) proves flowcap is inert by default:
+**`FlowObservationsOffTest.java`** (optional) proves autodoc is inert by default:
 
 ```java
 @SpringBootTest
@@ -451,7 +451,7 @@ pattern that matched nothing shows WireMock's diff against the closest request.
 
 Any other pattern is shown as-is in code formatting.
 
-**Glossary** (optional), at `<app>/src/test/resources/flowcap-glossary.json`, holds business labels:
+**Glossary** (optional), at `<app>/src/test/resources/autodoc-glossary.json`, holds business labels:
 
 ```json
 {
@@ -481,8 +481,8 @@ By default, the tests write every format on every run. Two properties change tha
 
 | Property | Default | Effect |
 | --- | --- | --- |
-| `flowcap.docs.formats` | `markdown,markdown-image,mermaid` | Which formats to write |
-| `flowcap.docs.verify` | `false` | `true`: write nothing, and fail if any committed doc differs from what would be written. It also fails if a scenario has no page, meaning no test class runs its properties. Use it in CI. |
+| `autodoc.docs.formats` | `markdown,markdown-image,mermaid` | Which formats to write |
+| `autodoc.docs.verify` | `false` | `true`: write nothing, and fail if any committed doc differs from what would be written. It also fails if a scenario has no page, meaning no test class runs its properties. Use it in CI. |
 
 Output under `<app>/docs/`:
 
@@ -501,7 +501,7 @@ Typical flow:
 ```bash
 ./gradlew build                                   # writes the docs
 git add <app>/docs && git commit
-./gradlew build -Pflowcap.docs.verify=true        # in CI: fails if anyone forgot to commit docs
+./gradlew build -Pautodoc.docs.verify=true        # in CI: fails if anyone forgot to commit docs
 ```
 
 ## 2.10 Optional: Gatling load test
@@ -519,14 +519,14 @@ Then:
    at WireMock with the same path prefixes as `downstreamUrls`.
 3. Run WireMock with `--disable-http2-plain`.
 4. Start the app with
-   `java -jar <app>.jar --spring.profiles.active=wiremock --flowcap.observations.enabled=true`.
+   `java -jar <app>.jar --spring.profiles.active=wiremock --autodoc.observations.enabled=true`.
 5. Run `./gradlew :<app>:gatlingRun`. These environment variables are optional:
    - `APP_URL`, `WIREMOCK_URL`
    - `PARTNER_DELAY_MS`
    - `PEAK_USERS_PER_SEC`, `RAMP_SECONDS`
    - `GATLING_PROPERTIES`: a property set such as `pricing.use-new=true`. Start the app with the same
      settings.
-6. Read per-step timings from `/actuator/metrics/flowcap.step`. Expose `metrics` with
+6. Read per-step timings from `/actuator/metrics/autodoc.step`. Expose `metrics` with
    `management.endpoints.web.exposure.include=health,metrics`.
 
 The simulation ignores `expect`.
@@ -538,15 +538,15 @@ The simulation ignores `expect`.
 <app>/build.gradle                                dependencies and test task (2.2)
 <app>/src/main/java/com/acme/app/flow/Participants.java, Steps.java
 <app>/src/main/java/...                           @FlowStep on existing methods
-<app>/src/test/java/com/acme/app/docs/            AppFlowcap, FlowDocsTest, FlowcapRulesTest,
+<app>/src/test/java/com/acme/app/docs/            AppAutodoc, FlowDocsTest, AutodocRulesTest,
                                                   ScenarioDocsTestSupport, FlowScenarioDocsTest,
                                                   one subclass per property set, FlowObservationsOffTest
 <app>/src/test/resources/flow-scenarios/*.json
-<app>/src/test/resources/flowcap-glossary.json    optional
+<app>/src/test/resources/autodoc-glossary.json    optional
 <app>/docs/                                       generated, committed
 ```
 
-## Upgrading flowcap in an app
+## Upgrading autodoc in an app
 
 1. Bump the version.
 2. Run `./gradlew build` and review the doc diff.
