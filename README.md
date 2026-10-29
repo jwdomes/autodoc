@@ -136,8 +136,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
-    // -Pautodoc.docs.formats=... and -Pautodoc.docs.verify=true reach autodoc as system properties
-    ['autodoc.docs.formats', 'autodoc.docs.verify'].each { key ->
+    // autodoc.* settings from gradle.properties or -P reach autodoc as system properties
+    ['autodoc.docs.formats', 'autodoc.docs.verify', 'autodoc.scenarios.dir'].each { key ->
         def value = providers.gradleProperty(key)
         if (value.present) {
             systemProperty key, value.get()
@@ -263,7 +263,7 @@ Put all the test classes in one package, for example `<app>/src/test/java/com/ac
 ```java
 final class AppAutodoc {
 
-    // Docs go to <app>/docs/; scenarios come from <app>/src/test/resources/flow-scenarios/;
+    // Docs go to <app>/docs/; scenarios come from <app>/src/test/resources/scenarios/;
     // the glossary is <app>/src/test/resources/autodoc-glossary.json
     static final AutodocSettings SETTINGS = AutodocSettings.of("com.acme.app", Participants.ORDERS);
 
@@ -272,7 +272,8 @@ final class AppAutodoc {
 }
 ```
 
-The second argument is the participant that receives incoming requests.
+The second argument is the participant that receives incoming requests. To keep scenarios
+somewhere other than `src/test/resources/scenarios`, set `autodoc.scenarios.dir` (2.9).
 
 ## 2.7 Test classes
 
@@ -392,8 +393,8 @@ class FlowObservationsOffTest {
 
 ## 2.8 Scenarios and expectations
 
-Each scenario is one JSON file at `<app>/src/test/resources/flow-scenarios/<name>.json`. The file
-name is the scenario's name.
+Each scenario is one JSON file at `<app>/src/test/resources/scenarios/<name>.json`, or in the
+folder set by `autodoc.scenarios.dir` (2.9). The file name is the scenario's name.
 
 ```json
 {
@@ -486,11 +487,18 @@ Any other pattern is shown as-is in code formatting.
 
 ## 2.9 Generated docs
 
-By default, the tests write every format on every run. Two properties change that, set with
-`-P` on the Gradle command line or in `gradle.properties`:
+By default, the tests read scenarios from `src/test/resources/scenarios` and write every format on
+every run. These properties change that. Set them in the repo's `gradle.properties` (next to
+`settings.gradle`) or with `-P` on the Gradle command line, which wins for that run:
+
+```properties
+# <repo>/gradle.properties
+autodoc.scenarios.dir=src/test/resources/flow-docs/cases
+```
 
 | Property | Default | Effect |
 | --- | --- | --- |
+| `autodoc.scenarios.dir` | `src/test/resources/scenarios` | The scenarios folder, relative to `<app>` (the module folder, not the repo root). The tests and Gatling both read it. A folder that doesn't exist fails the tests with its full path. |
 | `autodoc.docs.formats` | `markdown,markdown-image,mermaid` | Which formats to write |
 | `autodoc.docs.verify` | `false` | `true`: write nothing, and fail if any committed doc differs from what would be written. It also fails if a scenario has no page, meaning no test class runs its properties. Use it in CI. |
 
@@ -524,7 +532,18 @@ Copy these files:
 
 Then:
 
-1. Add `id 'io.gatling.gradle' version '3.16.0'` to the app's plugins.
+1. Add `id 'io.gatling.gradle' version '3.16.0'` to the app's plugins, and pass
+   `autodoc.scenarios.dir` on to Gatling in `<app>/build.gradle`:
+
+   ```groovy
+   tasks.named('gatlingRun') {
+       def scenariosDir = providers.gradleProperty('autodoc.scenarios.dir')
+       if (scenariosDir.present) {
+           systemProperties = (systemProperties ?: [:]) + ['autodoc.scenarios.dir': scenariosDir.get()]
+       }
+   }
+   ```
+
 2. Create `<app>/src/main/resources/application-wiremock.yml`, pointing every downstream base URL
    at WireMock with the same path prefixes as `downstreamUrls`.
 3. Run WireMock with `--disable-http2-plain`.
@@ -551,7 +570,7 @@ The simulation ignores `expect`.
 <app>/src/test/java/com/acme/app/docs/            AppAutodoc, FlowDocsTest, AutodocRulesTest,
                                                   ScenarioDocsTestSupport, FlowScenarioDocsTest,
                                                   one subclass per property set, FlowObservationsOffTest
-<app>/src/test/resources/flow-scenarios/*.json
+<app>/src/test/resources/scenarios/*.json        or the folder in autodoc.scenarios.dir
 <app>/src/test/resources/autodoc-glossary.json    optional
 <app>/docs/                                       generated, committed
 ```

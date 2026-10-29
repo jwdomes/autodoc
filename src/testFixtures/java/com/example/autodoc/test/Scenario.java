@@ -37,6 +37,10 @@ public record Scenario(String description, String method, String path, Map<Strin
 
     /** All scenario names in the directory, sorted. */
     public static Stream<String> names(Path dir) throws IOException {
+        if (!Files.isDirectory(dir)) {
+            throw new IllegalStateException("No scenarios folder at " + dir.toAbsolutePath()
+                    + ". Set autodoc.scenarios.dir in gradle.properties, relative to the app's module folder.");
+        }
         try (Stream<Path> files = Files.list(dir)) {
             return files.map(p -> p.getFileName().toString())
                     .filter(n -> n.endsWith(".json"))

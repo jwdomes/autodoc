@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 /** Replays every flow scenario as load, with all scenarios' stubs loaded into one WireMock. */
 public class FlowScenariosSimulation extends Simulation {
 
-    private static final Path SCENARIOS = Path.of("src/test/resources/flow-scenarios");
+    private static final Path SCENARIOS = Path.of(System.getProperty("autodoc.scenarios.dir", "src/test/resources/scenarios"));
     private static final String APP_URL = env("APP_URL", "http://localhost:8090");
     private static final String WIREMOCK_URL = env("WIREMOCK_URL", "http://localhost:8080");
     private static final int PARTNER_DELAY_MS = Integer.parseInt(env("PARTNER_DELAY_MS", "0"));

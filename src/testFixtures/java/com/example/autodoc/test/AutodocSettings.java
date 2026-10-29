@@ -12,7 +12,8 @@ import java.nio.file.Path;
  * @param basePackage      package scanned for steps and participants
  * @param entryParticipant participant that receives requests, used when a request is rejected before any step
  * @param docsDir          output directory for the generated docs
- * @param scenariosDir     directory of scenario JSON files
+ * @param scenariosDir     directory of scenario JSON files; {@link #of} reads it from the autodoc.scenarios.dir
+ *                         system property, which the app's build forwards from gradle.properties
  * @param glossaryFile     optional labels for endpoints and fields in the expectation text
  * @param upstreamLabel    label of the caller lifeline in scenario diagrams
  */
@@ -21,7 +22,8 @@ public record AutodocSettings(String basePackage, String entryParticipant, Path 
 
     public static AutodocSettings of(String basePackage, String entryParticipant) {
         return new AutodocSettings(basePackage, entryParticipant, Path.of("docs"),
-                Path.of("src/test/resources/flow-scenarios"), Path.of("src/test/resources/autodoc-glossary.json"),
+                Path.of(System.getProperty("autodoc.scenarios.dir", "src/test/resources/scenarios")),
+                Path.of("src/test/resources/autodoc-glossary.json"),
                 "Upstream");
     }
 
