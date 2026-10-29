@@ -32,6 +32,7 @@ src/main/resources/META-INF/spring/...AutoConfiguration.imports
 src/testFixtures/java/com/example/autodoc/test/      test support: runner, renderers, rules
 src/test/java/com/example/autodoc/                   the library's own tests
 templates/gatling/                                   load-test files apps copy (section 2.10)
+scripts/change-group.sh                              swaps the com.example group and package
 docs/                                                design notes
 ```
 
@@ -69,21 +70,21 @@ newer Boot keep their own versions.
 ## Changing the group and package
 
 The default group and package root is `com.example`. To use your own, for example `org.myco`, run
-this from the repo root (GNU sed):
+`scripts/change-group.sh` from a terminal in the repo root (bash, on Linux, macOS or Git Bash on
+Windows), then rebuild:
 
 ```bash
-NEW=org.myco
-NEW_DIR=${NEW//.//}
-sed -i "s/^group=.*/group=$NEW/" gradle.properties
-for s in main testFixtures test; do
-  mkdir -p src/$s/java/$NEW_DIR
-  git mv src/$s/java/com/example/autodoc src/$s/java/$NEW_DIR/autodoc
-done
-grep -rl 'com\.example\.autodoc' src | xargs sed -i "s/com\.example\.autodoc/$NEW.autodoc/g"
+cd autodoc                          # your clone of this repo
+scripts/change-group.sh org.myco    # your organization's group
 ./gradlew clean build publishToMavenLocal
+git add -A && git commit -m "Change group to org.myco"
 ```
 
-This does three things:
+The script reads the current group from `gradle.properties`, so it also works for a later change,
+say from `org.myco` to `org.myco.platform`. It refuses a malformed group or the current one. It
+doesn't commit, so check `git status` before committing.
+
+The script does three things:
 
 - It changes `group` in `gradle.properties`.
 - It moves the source folders.

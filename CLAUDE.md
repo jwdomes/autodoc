@@ -12,6 +12,7 @@ src/main/java/com/example/autodoc/boot/   AutodocAutoConfiguration, FlowStepInte
 src/testFixtures/java/.../autodoc/test/   what apps use in tests (published as the test-fixtures jar)
 src/test/java/...                         the library's own tests; fixture/ and clientcall/ are sample apps
 templates/gatling/                        load-test files apps copy
+scripts/                                  change-group.sh: swaps the com.example group and package
 docs/                                     design notes
 ```
 
