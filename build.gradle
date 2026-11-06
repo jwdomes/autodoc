@@ -3,7 +3,11 @@ plugins {
     // src/testFixtures becomes a second published jar that apps add with testFixtures(...)
     id 'java-test-fixtures'
     id 'maven-publish'
+    id 'pl.allegro.tech.build.axion-release' version '1.21.4'
 }
+
+// The version comes from git tags: v0.2.0 builds as 0.2.0, and any other commit as the next -SNAPSHOT.
+version = scmVersion.version
 
 java {
     toolchain {
@@ -58,6 +62,15 @@ publishing {
     publications {
         autodoc(MavenPublication) {
             from components.java     // main jar, test-fixtures jar, sources, POM and Gradle metadata
+        }
+    }
+    repositories {
+        maven {
+            name = 'nexus'     // credentials come from the nexusUsername and nexusPassword properties
+            url = version.endsWith('SNAPSHOT')
+                ? 'https://nexus.example.com/repository/maven-snapshots/'
+                : 'https://nexus.example.com/repository/maven-releases/'
+            credentials(PasswordCredentials)
         }
     }
 }

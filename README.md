@@ -25,7 +25,8 @@ registers nothing at runtime.
 ## Layout
 
 ```
-settings.gradle, build.gradle, gradle.properties     coordinates: com.example:autodoc:0.1.0
+settings.gradle, build.gradle, gradle.properties     coordinates: com.example:autodoc, version from git tags
+.harness/autodoc-publish.yaml                        Harness CI: builds every change, publishes tags to Nexus
 src/main/java/com/example/autodoc/                   annotations: @FlowStep, @FlowParticipant
 src/main/java/com/example/autodoc/boot/              runtime: auto-configuration, interceptor
 src/main/resources/META-INF/spring/...AutoConfiguration.imports
@@ -54,9 +55,21 @@ Publishing writes five files: the main jar, the test-fixtures jar, the sources j
 the `.module` Gradle metadata. The `.module` file is what lets apps write
 `testFixtures('com.example:autodoc:0.1.0')`. Only Gradle reads it.
 
-`publishToMavenLocal` only reaches builds on the same machine. To share autodoc with a team,
-publish it to your organization's Maven repository the way you publish your other internal
-libraries, usually from CI. All five files must be published, including the `.module` file.
+`publishToMavenLocal` only reaches builds on the same machine. To share autodoc with a team, the
+Harness pipeline in `.harness/autodoc-publish.yaml` publishes all five files to Nexus. It runs
+`./gradlew build` on every change, and `./gradlew publish` only when the build is for a tag.
+
+**Versions come from git tags** (the axion-release plugin). There is no version in
+`gradle.properties`. A commit tagged `v0.2.0` builds as `0.2.0`. Any other commit, or uncommitted
+changes, builds as the next snapshot, such as `0.2.1-SNAPSHOT`. `./gradlew currentVersion` prints it.
+To release, tag the commit and push the tag, which triggers the publish:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+Nexus rejects a second upload of the same release version, so each release needs a new tag.
 
 **Versioning.** autodoc uses semantic versioning. Count any of these as a major change:
 

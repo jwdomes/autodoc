@@ -1,0 +1,51 @@
+pipeline:
+  name: autodoc-publish
+  identifier: autodoc_publish
+  orgIdentifier: <your_org>
+  projectIdentifier: <your_project>
+  properties:
+    ci:
+      codebase:
+        connectorRef: <your_git_connector>
+        repoName: autodoc
+        build: <+input>
+        depth: 0     # full history with tags, which axion-release needs to work out the version
+  stages:
+    - stage:
+        name: Build and publish
+        identifier: build_publish
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Build
+                  identifier: build
+                  spec:
+                    connectorRef: <your_docker_connector>
+                    image: eclipse-temurin:21-jdk
+                    shell: Sh
+                    command: ./gradlew build
+              - step:
+                  type: Run
+                  name: Publish
+                  identifier: publish
+                  when:
+                    stageStatus: Success
+                    condition: <+codebase.build.type> == "tag"
+                  spec:
+                    connectorRef: <your_docker_connector>
+                    image: eclipse-temurin:21-jdk
+                    shell: Sh
+                    command: ./gradlew publish
+                    envVariables:
+                      ORG_GRADLE_PROJECT_nexusUsername: <+secrets.getValue("nexus_username")>
+                      ORG_GRADLE_PROJECT_nexusPassword: <+secrets.getValue("nexus_password")>
