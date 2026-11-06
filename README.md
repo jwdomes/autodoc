@@ -26,13 +26,13 @@ registers nothing at runtime.
 
 ```
 settings.gradle, build.gradle, gradle.properties     coordinates: com.example:autodoc, version from git tags
-.harness/autodoc-publish.yaml                        Harness CI: builds every change, publishes tags to Nexus
 src/main/java/com/example/autodoc/                   annotations: @FlowStep, @FlowParticipant
 src/main/java/com/example/autodoc/boot/              runtime: auto-configuration, interceptor
 src/main/resources/META-INF/spring/...AutoConfiguration.imports
 src/testFixtures/java/com/example/autodoc/test/      test support: runner, renderers, rules
 src/test/java/com/example/autodoc/                   the library's own tests
 templates/gatling/                                   load-test files apps copy (section 2.10)
+templates/harness/                                   a Harness CI pipeline to copy for publishing to Nexus
 scripts/change-group.sh                              swaps the com.example group and package
 docs/                                                design notes
 ```
@@ -55,14 +55,24 @@ Publishing writes five files: the main jar, the test-fixtures jar, the sources j
 the `.module` Gradle metadata. The `.module` file is what lets apps write
 `testFixtures('com.example:autodoc:0.1.0')`. Only Gradle reads it.
 
-`publishToMavenLocal` only reaches builds on the same machine. To share autodoc with a team, the
-Harness pipeline in `.harness/autodoc-publish.yaml` publishes all five files to Nexus. It runs
-`./gradlew build` on every change, and `./gradlew publish` only when the build is for a tag.
+`publishToMavenLocal` only reaches builds on the same machine. To share autodoc with a team,
+publish it to your organization's Maven repository from CI. All five files must be published,
+including the `.module` file. `./gradlew publish` does this, to the `nexus` repository in
+`build.gradle`, with credentials from the `nexusUsername` and `nexusPassword` properties.
+
+`templates/harness/autodoc-publish.yaml` is a starting Harness pipeline. It runs `./gradlew build`
+on every change, and `./gradlew publish` only when the build is for a tag. To use it, copy it into
+your CI and fill in:
+
+- the Nexus URLs in `build.gradle`
+- the org, project and connector IDs in the pipeline
+- the `nexus_username` and `nexus_password` secrets in Harness
+- triggers for pull requests and for `v*` tag pushes, which are set in the Harness UI
 
 **Versions come from git tags** (the axion-release plugin). There is no version in
 `gradle.properties`. A commit tagged `v0.2.0` builds as `0.2.0`. Any other commit, or uncommitted
 changes, builds as the next snapshot, such as `0.2.1-SNAPSHOT`. `./gradlew currentVersion` prints it.
-To release, tag the commit and push the tag, which triggers the publish:
+To release, tag the commit and push the tag. With the pipeline above, that triggers the publish:
 
 ```bash
 git tag v0.2.0
