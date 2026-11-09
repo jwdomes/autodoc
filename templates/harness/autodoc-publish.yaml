@@ -38,14 +38,16 @@ pipeline:
                   type: Run
                   name: Publish
                   identifier: publish
-                  when:
-                    stageStatus: Success
-                    condition: <+codebase.build.type> == "tag"
                   spec:
                     connectorRef: <your_docker_connector>
                     image: eclipse-temurin:21-jdk
                     shell: Sh
-                    command: ./gradlew publish
+                    # A tag-push trigger reports its build type as Push, not tag, so the version decides.
+                    command: |
+                      case "$(./gradlew -q currentVersion -Prelease.quiet)" in
+                        *-SNAPSHOT) echo "Not a release version, skipping publish" ;;
+                        *) ./gradlew publish ;;
+                      esac
                     envVariables:
                       ORG_GRADLE_PROJECT_nexusUsername: <+secrets.getValue("nexus_username")>
                       ORG_GRADLE_PROJECT_nexusPassword: <+secrets.getValue("nexus_password")>
