@@ -7,6 +7,9 @@ plugins {
 }
 
 // The version comes from git tags: v0.2.0 builds as 0.2.0, and any other commit as the next -SNAPSHOT.
+scmVersion {
+    versionCreator('simple')     // the default puts the branch name in snapshot versions on branches
+}
 version = scmVersion.version
 
 java {
