@@ -49,5 +49,6 @@ pipeline:
                         *) ./gradlew publish ;;
                       esac
                     envVariables:
+                      ORG_GRADLE_PROJECT_nexusUrl: https://nexus.example.com/repository/maven-releases/
                       ORG_GRADLE_PROJECT_nexusUsername: <+secrets.getValue("nexus_username")>
                       ORG_GRADLE_PROJECT_nexusPassword: <+secrets.getValue("nexus_password")>
