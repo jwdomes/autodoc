@@ -61,13 +61,15 @@ including the `.module` file. `./gradlew publish` does this, to the `nexus` repo
 `build.gradle`, with credentials from the `nexusUsername` and `nexusPassword` properties.
 
 `templates/harness/autodoc-publish.yaml` is a starting Harness pipeline. It runs `./gradlew build`
-on every change, and `./gradlew publish` only when the build is for a tag. To use it, copy it into
-your CI and fill in:
+on every change, and `./gradlew publish` only when the commit is tagged, which axion-release
+reports as a version without `-SNAPSHOT`. To use it, copy it into your CI and fill in:
 
 - the Nexus URLs in `build.gradle`
 - the org, project and connector IDs in the pipeline
 - the `nexus_username` and `nexus_password` secrets in Harness
-- triggers for pull requests and for `v*` tag pushes, which are set in the Harness UI
+- triggers for pull requests and for `v*` tag pushes, which are set in the Harness UI. A tag
+  trigger is a GitHub **Push** event with the payload condition `<+trigger.payload.ref>` starts
+  with `refs/tags/v`, and the codebase build set to branch `<+trigger.tag>`.
 
 **Versions come from git tags** (the axion-release plugin). There is no version in
 `gradle.properties`. A commit tagged `v0.2.0` builds as `0.2.0`. Any other commit, or uncommitted
