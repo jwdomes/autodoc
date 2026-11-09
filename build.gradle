@@ -66,10 +66,8 @@ publishing {
     }
     repositories {
         maven {
-            name = 'nexus'     // credentials come from the nexusUsername and nexusPassword properties
-            url = version.endsWith('SNAPSHOT')
-                ? 'https://nexus.example.com/repository/maven-snapshots/'
-                : 'https://nexus.example.com/repository/maven-releases/'
+            name = 'nexus'     // URL and credentials come from the nexusUrl, nexusUsername and nexusPassword properties
+            url = providers.gradleProperty('nexusUrl')
             credentials(PasswordCredentials)
         }
     }

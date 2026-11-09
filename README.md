@@ -58,13 +58,16 @@ the `.module` Gradle metadata. The `.module` file is what lets apps write
 `publishToMavenLocal` only reaches builds on the same machine. To share autodoc with a team,
 publish it to your organization's Maven repository from CI. All five files must be published,
 including the `.module` file. `./gradlew publish` does this, to the `nexus` repository in
-`build.gradle`, with credentials from the `nexusUsername` and `nexusPassword` properties.
+`build.gradle`. It reads three Gradle properties: `nexusUrl`, `nexusUsername` and `nexusPassword`.
+Set them as `ORG_GRADLE_PROJECT_nexusUrl` (and so on) environment variables in CI, or in your own
+`~/.gradle/gradle.properties` to publish from your machine. `build` and `publishToMavenLocal`
+don't need them.
 
 `templates/harness/autodoc-publish.yaml` is a starting Harness pipeline. It runs `./gradlew build`
 on every change, and `./gradlew publish` only when the commit is tagged, which axion-release
 reports as a version without `-SNAPSHOT`. To use it, copy it into your CI and fill in:
 
-- the Nexus URLs in `build.gradle`
+- the Nexus releases URL in `ORG_GRADLE_PROJECT_nexusUrl`
 - the org, project and connector IDs in the pipeline
 - the `nexus_username` and `nexus_password` secrets in Harness
 - triggers for pull requests and for `v*` tag pushes, which are set in the Harness UI. A tag
