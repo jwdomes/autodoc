@@ -64,15 +64,22 @@ Set them as `ORG_GRADLE_PROJECT_nexusUrl` (and so on) environment variables in C
 don't need them.
 
 `templates/harness/autodoc-publish.yaml` is a starting Harness pipeline. It runs `./gradlew build`
-on every change, and `./gradlew publish` only when the commit is tagged, which axion-release
-reports as a version without `-SNAPSHOT`. To use it, copy it into your CI and fill in:
+on every change and shows the test results in the run's Tests tab. It runs `./gradlew publish` only
+for a tag push, and fails if the commit it checked out still builds as a `-SNAPSHOT` version, which
+means the trigger didn't check out the tag. Both steps keep Gradle's cache in the workspace, so
+Publish reuses Build's downloads. To use it, copy it into your CI and fill in:
 
 - the Nexus releases URL in `ORG_GRADLE_PROJECT_nexusUrl`
 - the org, project and connector IDs in the pipeline
 - the `nexus_username` and `nexus_password` secrets in Harness
 - triggers for pull requests and for `v*` tag pushes, which are set in the Harness UI. A tag
   trigger is a GitHub **Push** event with the payload condition `<+trigger.payload.ref>` starts
-  with `refs/tags/v`, and the codebase build set to branch `<+trigger.tag>`.
+  with `refs/tags/v`, and **Pipeline Reference Branch** (`pipelineBranchName`) set to
+  `<+"$tag:"+<+trigger.tag>>`.
+
+The pipeline builds `<+pipeline.branch>`, the branch the pipeline YAML was loaded from, so it must be
+stored in Git alongside the code. The tag trigger loads it from the tag, which makes the build check
+out the tag.
 
 **Versions come from git tags** (the axion-release plugin). There is no version in
 `gradle.properties`. A commit tagged `v0.2.0` builds as `0.2.0`. Any other commit, or uncommitted

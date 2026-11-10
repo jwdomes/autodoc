@@ -8,7 +8,10 @@ pipeline:
       codebase:
         connectorRef: <your_git_connector>
         repoName: autodoc
-        build: <+input>
+        build:
+          type: branch
+          spec:
+            branch: <+pipeline.branch>     # the branch, or tag, the pipeline YAML was loaded from
         depth: 0     # full history with tags, which axion-release needs to work out the version
   stages:
     - stage:
@@ -32,22 +35,38 @@ pipeline:
                   spec:
                     connectorRef: <your_docker_connector>
                     image: eclipse-temurin:21-jdk
-                    shell: Sh
-                    command: ./gradlew build
+                    shell: Bash
+                    # Gradle's cache lives in the shared workspace, so Publish reuses what Build downloaded.
+                    command: |
+                      export GRADLE_USER_HOME="$PWD/.gradle"
+                      ./gradlew build
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - build/test-results/test/*.xml
               - step:
                   type: Run
                   name: Publish
                   identifier: publish
+                  # Runs only for tag pushes. The quotes make a manual run, which has no trigger
+                  # payload, compare the string "null" and skip, not fail on a missing value.
+                  when:
+                    stageStatus: Success
+                    condition: '"<+trigger.payload.ref>".startsWith("refs/tags/")'
                   spec:
                     connectorRef: <your_docker_connector>
                     image: eclipse-temurin:21-jdk
-                    shell: Sh
-                    # A tag-push trigger reports its build type as Push, not tag, so the version decides.
+                    shell: Bash
                     command: |
-                      case "$(./gradlew -q currentVersion -Prelease.quiet)" in
-                        *-SNAPSHOT) echo "Not a release version, skipping publish" ;;
-                        *) ./gradlew publish ;;
-                      esac
+                      set -e
+                      export GRADLE_USER_HOME="$PWD/.gradle"
+                      VERSION=$(./gradlew -q currentVersion -Prelease.quiet)
+                      if [[ "$VERSION" == *-SNAPSHOT ]]; then
+                        echo "Tag push, but the checked-out commit builds as $VERSION. The trigger must check out the tag, with full history."
+                        exit 1
+                      fi
+                      ./gradlew publish
                     envVariables:
                       ORG_GRADLE_PROJECT_nexusUrl: https://nexus.example.com/repository/maven-releases/
                       ORG_GRADLE_PROJECT_nexusUsername: <+secrets.getValue("nexus_username")>
