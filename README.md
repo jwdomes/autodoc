@@ -65,31 +65,27 @@ don't need them.
 
 `templates/harness/autodoc-publish.yaml` is a starting Harness pipeline. It runs `./gradlew build`
 on every change and shows the test results in the run's Tests tab. It runs `./gradlew publish` only
-for a tag push, and fails if the commit it checked out still builds as a `-SNAPSHOT` version, which
-means the trigger didn't check out the tag. Both steps keep Gradle's cache in the workspace, so
+for a published GitHub Release, and fails if the commit it checked out still builds as a
+`-SNAPSHOT` version, which means the trigger didn't check out the release tag. Both steps keep Gradle's cache in the workspace, so
 Publish reuses Build's downloads. To use it, copy it into your CI and fill in:
 
 - the Nexus releases URL in `ORG_GRADLE_PROJECT_nexusUrl`
 - the org, project and connector IDs in the pipeline
 - the `nexus_username` and `nexus_password` secrets in Harness
-- triggers for pull requests and for `v*` tag pushes, which are set in the Harness UI. A tag
-  trigger is a GitHub **Push** event with the payload condition `<+trigger.payload.ref>` starts
-  with `refs/tags/v`, and **Pipeline Reference Branch** (`pipelineBranchName`) set to
-  `<+"$tag:"+<+trigger.tag>>`.
+- triggers for pull requests and for releases, which are set in the Harness UI. The release
+  trigger is a GitHub **Release** event with the **publish** action, and **Pipeline Reference
+  Branch** (`pipelineBranchName`) set to `<+"$tag:"+<+trigger.payload.release.tag_name>>`.
 
 The pipeline builds `<+pipeline.branch>`, the branch the pipeline YAML was loaded from, so it must be
-stored in Git alongside the code. The tag trigger loads it from the tag, which makes the build check
-out the tag.
+stored in Git alongside the code. The release trigger loads it from the release's tag, which makes
+the build check out the tag.
 
 **Versions come from git tags** (the axion-release plugin). There is no version in
 `gradle.properties`. A commit tagged `v0.2.0` builds as `0.2.0`. Any other commit, or uncommitted
 changes, builds as the next snapshot, such as `0.2.1-SNAPSHOT`. `./gradlew currentVersion` prints it.
-To release, tag the commit and push the tag. With the pipeline above, that triggers the publish:
-
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-```
+To release, publish a GitHub Release: on the repo's **Releases** page, draft a new release, create
+a new tag such as `v0.2.0` on the commit to release, and publish it. With the pipeline above, that
+triggers the publish. Drafts don't trigger it.
 
 Nexus rejects a second upload of the same release version, so each release needs a new tag.
 

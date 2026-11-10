@@ -49,11 +49,11 @@ pipeline:
                   type: Run
                   name: Publish
                   identifier: publish
-                  # Runs only for tag pushes. The quotes make a manual run, which has no trigger
-                  # payload, compare the string "null" and skip, not fail on a missing value.
+                  # Runs only for a published GitHub Release. The quotes make other runs, which have no
+                  # release in their payload, compare the string "null" and skip, not fail.
                   when:
                     stageStatus: Success
-                    condition: '"<+trigger.payload.ref>".startsWith("refs/tags/")'
+                    condition: '"<+trigger.payload.release.tag_name>".startsWith("v")'
                   spec:
                     connectorRef: <your_docker_connector>
                     image: eclipse-temurin:21-jdk
@@ -63,7 +63,7 @@ pipeline:
                       export GRADLE_USER_HOME="$PWD/.gradle"
                       VERSION=$(./gradlew -q currentVersion -Prelease.quiet)
                       if [[ "$VERSION" == *-SNAPSHOT ]]; then
-                        echo "Tag push, but the checked-out commit builds as $VERSION. The trigger must check out the tag, with full history."
+                        echo "Release run, but the checked-out commit builds as $VERSION. The trigger must check out the release tag, with full history."
                         exit 1
                       fi
                       ./gradlew publish
