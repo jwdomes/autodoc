@@ -7,8 +7,10 @@ plugins {
 }
 
 // The version comes from git tags: v0.2.0 builds as 0.2.0, and any other commit as the next -SNAPSHOT.
+// Configure scmVersion before reading the version: axion-release opens the repo on the first read.
 scmVersion {
     versionCreator('simple')     // the default puts the branch name in snapshot versions on branches
+    unshallowRepoOnCI = false    // its CI fetch has no git credentials inside a build container
 }
 version = scmVersion.version
 
