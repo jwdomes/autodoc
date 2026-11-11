@@ -12,7 +12,8 @@ pipeline:
           type: branch
           spec:
             branch: <+pipeline.branch>     # the branch, or tag, the pipeline YAML was loaded from
-        depth: 0     # full history with tags, which axion-release needs to work out the version
+        depth: 0          # full history, which axion-release needs to work out the version
+        fetchTags: true   # without it the clone has no tags, and a release builds as 0.1.0-SNAPSHOT
   stages:
     - stage:
         name: Build and publish
