@@ -11,6 +11,7 @@ import com.example.autodoc.test.SequenceModel.Participant;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
@@ -91,7 +92,10 @@ class SequenceRenderingTest {
     }
 
     private static Document parse(String svg) throws Exception {
-        return DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        return factory.newDocumentBuilder()
                 .parse(new ByteArrayInputStream(svg.getBytes(StandardCharsets.UTF_8)));
     }
 
